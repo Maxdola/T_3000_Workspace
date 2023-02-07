@@ -1,35 +1,29 @@
 use pyo3::prelude::*;
 use std::collections::HashMap;
-use std::error::Error;
+//use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
 use linreg::{linear_regression};
 
-use std::time::{Instant};
-
-/// Formats the sum of two numbers as string.
-#[pyfunction]
-fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
-    Ok((a + b).to_string())
-}
-
-fn predict(x: f64, result: &(f64, f64)) -> f64 {
-    result.1 + result.0 * x
-}
+//use std::time::{Instant};
 
 #[pyfunction]
-fn run() -> PyResult<(f64, f64)> {
-    let start = Instant::now();
+fn read_csv(file_path : &str, cols: Vec<&str>) -> PyResult<Vec<Vec<f64>>> {
+//fn read_csv(path : &str, cols: &[&str]) -> PyResult<Vec<Vec<f64>>> {
+    //let start = Instant::now();
 
-    let path = Path::new("./weatherHistory.csv");
+    let path = Path::new(file_path);
     let mut file = File::open(path)?;
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
 
-    let mut temp : Vec<f64> = Vec::new();
-    let mut humi : Vec<f64> = Vec::new();
+    //let mut col_values : Vec<Vec<f64>> = vec![vec![]; cols.len()];
+    let mut col_values : Vec<Vec<f64>> = Vec::new();
+    for i in 0..cols.len()  {
+        col_values.push(Vec::new());
+    }
 
     let header_line = contents.lines().next().unwrap();
     let header_columns: Vec<&str> = header_line.split(',').collect();
@@ -39,43 +33,48 @@ fn run() -> PyResult<(f64, f64)> {
         .map(|(i, c)| (*c, i))
         .collect();
     //println!("{:?}", header_map);
-    let a_index = header_map.get("Temperature (C)").unwrap();
-    let b_index = header_map.get("Humidity").unwrap();
+
+    let mut col_indexes : Vec<&usize> = Vec::new();
+
+    for col in cols {
+        let index = header_map.get(col).unwrap();
+        col_indexes.push(index);
+    }
 
     for line in contents.lines().skip(1) {
         let columns: Vec<&str> = line.split(',').collect();
-        if let (Ok(a), Ok(b)) = (
-            columns[*a_index].parse::<f64>(),
-            columns[*b_index].parse::<f64>(),
-        ) {
-            temp.push(a);
-            humi.push(b);
+
+        
+        for i in 0..col_indexes.len() {
+            let col_index = col_indexes[i];
+            let value = columns[*col_index].parse::<f64>().unwrap();
+            col_values[i].push(value);
         }
     }
 
-    //println!("{:?}", temp.len());
-    //println!("{:?}", humi.len());
+    //println!("Time elapsed: {:?} ms", start.elapsed().as_millis());
+    Ok(col_values)
+}
 
-    let result = linear_regression::<f64,f64,f64>(&temp, &humi);
-
+#[pyfunction]
+fn train(x: Vec<f64>, y: Vec<f64>) -> (f64, f64) {
+    //let start = Instant::now();
+    let result = linear_regression::<f64,f64,f64>(&x, &y);
     let res = result.unwrap();
+    //println!("Time elapsed: {:?} ms", start.elapsed().as_millis());
+    return (res.0, res.1);
+}
 
-    println!("{:?}", res);
-
-    println!("Predicted value for '0': {:?}", predict(0.0, &res));
-    println!("Predicted value for '2': {:?}", predict(2.0, &res));
-    
-    let duration = start.elapsed();
-
-    println!("Time elapsed: {:?}ms", duration.as_millis());
-
-    Ok(res)
+#[pyfunction]
+fn predict(model: (f64, f64), value: f64) -> f64 {
+    return model.1 + model.0 * value;
 }
 
 /// A Python module implemented in Rust.
 #[pymodule]
 fn QyO3(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
-    m.add_function(wrap_pyfunction!(run, m)?)?;
+    m.add_function(wrap_pyfunction!(read_csv, m)?)?;
+    m.add_function(wrap_pyfunction!(train, m)?)?;
+    m.add_function(wrap_pyfunction!(predict, m)?)?;
     Ok(())
 }

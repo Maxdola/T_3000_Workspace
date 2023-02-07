@@ -14,8 +14,8 @@ from sklearn.linear_model import LinearRegression
 timestamp("Imports")
 
 # Load the data from the csv file
-#data = pd.read_csv("./data/weatherHistory.csv")
-data = pd.read_csv("./data/weatherHistory_big.csv")
+data = pd.read_csv("./data/weatherHistory.csv")
+#data = pd.read_csv("./data/weatherHistory_big.csv")
 
 timestamp("Reading File")
 
@@ -52,3 +52,20 @@ print(model.predict(new_X))
 
 
 print("--- %s seconds ---" % (time.time() - start_time))
+
+import matplotlib.pyplot as plt
+
+def predictValue(x):
+  return model.intercept_ + x * model.coef_;
+
+plt.plot(XX, yy, "ro", markersize=0.1)
+plt.plot(XX, predictValue(XX), "ro", markersize=0.1)
+plt.xlim([-20, 40])
+plt.ylim([0, 1])
+plt.ylabel('Temperatur / Humidity')
+
+plt.savefig('my_plot.png')
+
+timestamp("Drawing")
+
+#plt.show()

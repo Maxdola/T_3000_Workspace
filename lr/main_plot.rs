@@ -4,9 +4,12 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
+use plotters::prelude::*;
+
 use linreg::{linear_regression};
 
 use std::time::{Instant};
+
 
 fn predict(x: f64, result: &(f64, f64)) -> f64 {
     result.1 + result.0 * x
@@ -84,6 +87,47 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("Time elapsed: {:?} ms", start.elapsed().as_millis());
 
+    let mut points : Vec<(f64, f64)> = Vec::new();
+    let mut ipoints : Vec<(i32, i32)> = Vec::new();
+
+    for n in 0..temp.len() {
+        points.push((temp[n] * 1_000.0, humi[n] * 1_000.0));
+        ipoints.push(((temp[n] * 1_000.0) as i32, (humi[n] * 1_000.0) as i32));
+    }
+
+    //println!("{:#?}", ipoints);
+
+        // Create a new plotting backend
+    let root = BitMapBackend::new("output.png", (640, 480)).into_drawing_area();
+    root.fill(&WHITE).unwrap();
+
+    // Plot the points
+    let mut chart = ChartBuilder::on(&root)
+        .margin(5)
+        .x_label_area_size(30)
+        .y_label_area_size(30)
+        .build_cartesian_2d( -20_000..40__000, 0..1_000)
+        .unwrap();
+
+    chart.configure_mesh().draw().unwrap();
+
+    let line: Vec<(i32, i32)> = (-10..=40).map(|x| ( x * 1_000, ((&res.1 + &res.0 * (x as f64)) * 1_000.0) as i32)).collect();
+    //println!("{:#?}", line);
+
+    chart
+        .draw_series(ipoints.into_iter()
+            .map(|point| Circle::new(point, 1, &RED)))
+        .unwrap();
+
+    chart
+    .draw_series(
+        LineSeries::new(line, &GREEN)
+        ).unwrap();
+
+    // Save the image to a file
+    root.present().unwrap();
+
+    timestamp("Drawing");
 
     Ok(())
 }

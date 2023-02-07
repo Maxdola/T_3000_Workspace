@@ -3,24 +3,28 @@ use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use once_cell::sync::Lazy;
 
 use linreg::{linear_regression};
 
 use std::time::{Instant};
 
+static START : Lazy<Instant> = Lazy::new(Instant::now);
+static mut REF_TIME : Lazy<Instant> = Lazy::new(Instant::now);
+
+
 fn predict(x: f64, result: &(f64, f64)) -> f64 {
     result.1 + result.0 * x
 }
 
+fn timestamp(name: &str) {
+    unsafe {
+        println!("[{:?}]: -- {:?} ns --", name, REF_TIME.elapsed().as_nanos());
+        REF_TIME = Lazy::new(Instant::now);
+    }
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
-    let start = Instant::now();
-    let mut ref_time = Instant::now();
-
-    let mut timestamp = move | name: &str | {
-        println!("[{:?}]: --- {:?} ms ---", name, ref_time.elapsed().as_millis());
-        ref_time = Instant::now();
-    };
-
     timestamp("Imports");
     
     let path = Path::new("../data/weatherHistory.csv");
@@ -82,8 +86,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Predicted value for '2': {:?}", x2);
     
 
-    println!("Time elapsed: {:?} ms", start.elapsed().as_millis());
-
+    println!("Time elapsed: {:?}ns", START.elapsed().as_nanos());
 
     Ok(())
 }

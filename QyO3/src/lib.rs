@@ -7,19 +7,14 @@ use std::path::Path;
 
 use linreg::{linear_regression};
 
-//use std::time::{Instant};
-
 #[pyfunction]
 fn read_csv(file_path : &str, cols: Vec<&str>) -> PyResult<Vec<Vec<f64>>> {
-//fn read_csv(path : &str, cols: &[&str]) -> PyResult<Vec<Vec<f64>>> {
-    //let start = Instant::now();
 
     let path = Path::new(file_path);
     let mut file = File::open(path)?;
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
 
-    //let mut col_values : Vec<Vec<f64>> = vec![vec![]; cols.len()];
     let mut col_values : Vec<Vec<f64>> = Vec::new();
     for i in 0..cols.len()  {
         col_values.push(Vec::new());
@@ -32,7 +27,6 @@ fn read_csv(file_path : &str, cols: Vec<&str>) -> PyResult<Vec<Vec<f64>>> {
         .enumerate()
         .map(|(i, c)| (*c, i))
         .collect();
-    //println!("{:?}", header_map);
 
     let mut col_indexes : Vec<&usize> = Vec::new();
 
@@ -52,16 +46,13 @@ fn read_csv(file_path : &str, cols: Vec<&str>) -> PyResult<Vec<Vec<f64>>> {
         }
     }
 
-    //println!("Time elapsed: {:?} ms", start.elapsed().as_millis());
     Ok(col_values)
 }
 
 #[pyfunction]
 fn train(x: Vec<f64>, y: Vec<f64>) -> (f64, f64) {
-    //let start = Instant::now();
     let result = linear_regression::<f64,f64,f64>(&x, &y);
     let res = result.unwrap();
-    //println!("Time elapsed: {:?} ms", start.elapsed().as_millis());
     return (res.0, res.1);
 }
 
@@ -70,7 +61,6 @@ fn predict(model: (f64, f64), value: f64) -> f64 {
     return model.1 + model.0 * value;
 }
 
-/// A Python module implemented in Rust.
 #[pymodule]
 fn QyO3(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(read_csv, m)?)?;
